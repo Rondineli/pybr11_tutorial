@@ -1,0 +1,32 @@
+packages:
+  yum:
+    git: []
+    postgresql: []
+
+container_commands:
+  01_nginx_worker_processes:
+    command: |
+      sed -i 's/^\s*\(worker_processes\s*\)\d*.*$/\14;/' /tmp/deployment/config/#etc#nginx#nginx.conf
+  02_nginx_worker_rlimit:
+    command: "sed -i '/^\(\(\s*\)worker_processes\s*\)\d*.*$/a worker_rlimit_nofile 8192;' /tmp/deployment/config/#etc#nginx#nginx.conf"
+  03_nginx_worker_connections:
+    command: "sed -i 's/^\(\s*worker_connections\s*\)\d*.*$/\14096;/' /tmp/deployment/config/#etc#nginx#nginx.conf"
+  04_nginx_keepalive_timeout:
+    command: "sed 's/^\(\s*keepalive_timeout\s*\)\d*.*$/\130;/' /tmp/deployment/config/#etc#nginx#nginx.conf"
+  05_nginx_gzip:
+    command: |
+      "sed '/upstream/i \
+      gzip on;\
+      gzip_comp_level 6;\
+      gzip_vary on;\
+      gzip_min_length 1000;\
+      gzip_proxied any;\
+      gzip_types text/plain text/html text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;\
+      gzip_buffers 16 8k;\
+      ' /tmp/deployment/config/#etc#nginx#sites-available#elasticbeanstalk-nginx-docker.conf"
+  06_nignx_https:
+    command: |
+      "sed -i 's#location / {#location / {\nproxy_set_header X-Forwarded-Proto https ;#' /tmp/deployment/config/#etc#nginx#sites-available#elasticbeanstalk-nginx-docker.conf"
+  07_nginx_rewrite_https:
+    command: |
+      "sed -i 's/listen 80\;/listen 80\;\nrewrite        \^ https:\/\/$server_name$request_uri? permanent\;/' /tmp/deployment/config/#etc#nginx#sites-available#elasticbeanstalk-nginx-docker.conf
